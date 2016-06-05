@@ -1,24 +1,21 @@
+sudo: false
 language: python
-
 python:
   - "2.7"
-  
 services: postgresql
-
 install:
   - pip install -r requirements.txt
   - pip install phonenumbers
   - pip install django-cities-light
   - pip install coveralls
-  
 before_script:
-  - psql -c "CREATE DATABASE vms;" -U postgres
-  
+  - psql -c "CREATE USER vmsadmin WITH PASSWORD '0xdeadbeef';" -U postgres
+  - psql -c "CREATE DATABASE vms;" -U vmsadmin
 script:
   - cd vms
   - python manage.py syncdb
   - python manage.py migrate
   - python manage.py cities_light
+  -
 
-after_success:
-  coveralls --rcfile=.coveragerc
+
