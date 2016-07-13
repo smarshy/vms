@@ -1,9 +1,11 @@
 from event.models import Event
 from job.models import Job
+from administrator.models import Administrator
 from django.contrib.auth.models import User
 from shift.models import Shift, VolunteerShift
 from volunteer.models import Volunteer
 from organization.models import Organization
+from cities_light.models import Country
 
 # Contains common functions which need to be frequently called by tests
 
@@ -108,3 +110,59 @@ def get_report_list(duration_list, report_list, total_hours):
 		report_list.append(report)
 
     return (report_list, total_hours)
+
+def create_organization():
+    Organization.objects.create(
+        name = 'DummyOrg')
+
+def create_country():
+    Country.objects.create(
+        name_ascii = 'India',
+        slug ='india',
+        geoname_id = '1269750',
+        alternate_names = '',
+        name = 'India',
+        code2 = 'IN',
+        code3 = 'IND',
+        continent = 'AS',
+        tld = 'in',
+        phone = '91')
+
+def create_admin():
+
+    user_1 = User.objects.create_user(
+        username = 'admin',
+        password = 'admin'
+        )
+
+    admin = Administrator.objects.create(
+        user = user_1,
+        address = 'address',
+        city = 'city',
+        state = 'state',
+        country = 'country',
+        phone_number = '9999999999',
+        email = 'admin@admin.com',
+        unlisted_organization = 'organization')
+
+    return admin
+
+def create_volunteer():
+
+    user_1 = User.objects.create_user(
+        username = 'volunteer',
+        password = 'volunteer'
+        )
+
+    volunteer = Volunteer.objects.create(
+        user = user_1,
+        address = 'address',
+        city = 'city',
+        state = 'state',
+        country = 'country',
+        phone_number = '9999999999',
+        email = 'volunteer@volunteer.com',
+        unlisted_organization = 'organization')
+
+    return volunteer
+
