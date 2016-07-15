@@ -1,4 +1,3 @@
-from django.test import TestCase
 from django.contrib.staticfiles.testing import LiveServerTestCase
 
 from django.contrib.auth.models import User
@@ -10,75 +9,54 @@ from shift.models import Shift, VolunteerShift
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
-from organization.models import Organization #hack to pass travis,Bug in Code
-
+from shift.utils import (
+    create_organization,
+    create_volunteer,
+    register_event_utility,
+    register_job_utility,
+    register_shift_utility,
+    create_volunteer_with_details,
+    create_shift_with_details
+    )
 
 class ShiftSignUp(LiveServerTestCase):
     '''
     '''
+    @classmethod
+    def setUpClass(cls):
+        cls.homepage = '/'
+        cls.authentication_page = '/authentication/login/'
+        cls.driver = webdriver.Firefox()
+        cls.driver.implicitly_wait(5)
+        cls.driver.maximize_window()
+        super(ShiftSignUp, cls).setUpClass()
+
     def setUp(self):
-        volunteer_user = User.objects.create_user(
-                username = 'volunteer',
-                password = 'volunteer')
-
-        Volunteer.objects.create(
-                user = volunteer_user,
-                address = 'address',
-                city = 'city',
-                state = 'state',
-                country = 'country',
-                phone_number = '9999999999',
-                email = 'volunteer@volunteer.com',
-                unlisted_organization = 'organization')
-
-        # create an org prior to registration. Bug in Code
-        # added to pass CI
-        Organization.objects.create(
-                name = 'DummyOrg')
-
-        self.homepage = '/'
-        self.authentication_page = '/authentication/login/'
-        self.driver = webdriver.Firefox()
-        self.driver.implicitly_wait(5)
-        self.driver.maximize_window()
-        super(ShiftSignUp, self).setUp()
+        create_volunteer()
 
     def tearDown(self):
-        self.driver.quit()
-        super(ShiftSignUp, self).tearDown()
+        pass
 
-    def login(self):
+    @classmethod
+    def tearDownClass(cls):
+        cls.driver.quit()
+        super(ShiftSignUp, cls).tearDownClass()
+
+    def login(self, credentials):
         self.driver.get(self.live_server_url + self.authentication_page)
-        self.driver.find_element_by_id('id_login').send_keys('volunteer')
-        self.driver.find_element_by_id('id_password').send_keys('volunteer')
+        self.driver.find_element_by_id('id_login').send_keys(credentials['username'])
+        self.driver.find_element_by_id('id_password').send_keys(credentials['password'])
         self.driver.find_element_by_xpath('//form[1]').submit()
 
-        self.assertEqual(self.driver.current_url,
-                self.live_server_url + self.homepage)
-
-    def register_event_utility(self):
-        Event.objects.create(
-                name = 'event',
-                start_date = '2016-05-10',
-                end_date = '2018-06-16')
-
-    def register_job_utility(self):
-        Job.objects.create(
-                name = 'job',
-                start_date = '2016-05-10',
-                end_date = '2017-06-15',
-                event = Event.objects.get(name = 'event'))
-
-    def register_shift_utility(self):
-        Shift.objects.create(
-                date = '2017-06-15',
-                start_time = '09:00',
-                end_time = '15:00',
-                max_volunteers ='6',
-                job = Job.objects.get(name = 'job'))
+    def fill_search_form(self, date):
+        self.driver.find_element_by_id('from').clear()
+        self.driver.find_element_by_id('to').clear()
+        self.driver.find_element_by_id('from').send_keys(date[0])
+        self.driver.find_element_by_id('to').send_keys(date[1])
+        self.driver.find_element_by_xpath('//form[1]').submit()
 
     def test_events_page_with_no_events(self):
-        self.login()
+        self.login({ 'username' : 'volunteer', 'password' : 'volunteer'})
 
         # open Shift Sign Up
         self.driver.find_element_by_link_text('Shift Sign Up').click()
@@ -86,14 +64,13 @@ class ShiftSignUp(LiveServerTestCase):
         self.assertEqual(self.driver.find_element_by_class_name('alert-info').text,
                'There are no events.')
 
-
     def test_signup_shifts_with_registered_shifts(self):
         # login
-        self.login()
+        self.login({ 'username' : 'volunteer', 'password' : 'volunteer'})
 
-        self.register_event_utility()
-        self.register_job_utility()
-        self.register_shift_utility()
+        register_event_utility()
+        register_job_utility()
+        register_shift_utility()
 
         # open Shift Sign Up
         self.driver.find_element_by_link_text('Shift Sign Up').click()
@@ -140,11 +117,11 @@ class ShiftSignUp(LiveServerTestCase):
 
     def test_signup_for_same_shift_again(self):
         # login
-        self.login()
+        self.login({ 'username' : 'volunteer', 'password' : 'volunteer'})
 
-        self.register_event_utility()
-        self.register_job_utility()
-        self.register_shift_utility()
+        register_event_utility()
+        register_job_utility()
+        register_shift_utility()
 
         # open Shift Sign Up
         self.driver.find_element_by_link_text('Shift Sign Up').click()
@@ -189,11 +166,10 @@ class ShiftSignUp(LiveServerTestCase):
             self.assertEqual(self.driver.find_element_by_xpath(
             '//table//tbody//tr[1]//td[4]').text, 'View Jobs')
 
-
     def test_empty_events(self):
-        self.login()
+        self.login({ 'username' : 'volunteer', 'password' : 'volunteer'})
 
-        self.register_event_utility()
+        register_event_utility()
 
         # open Shift Sign Up
         self.driver.find_element_by_link_text('Shift Sign Up').click()
@@ -206,7 +182,7 @@ class ShiftSignUp(LiveServerTestCase):
             self.assertEqual(self.driver.find_element_by_xpath(
             '//table//tbody//tr[1]//td[4]').text, 'View Jobs')
 
-        self.register_job_utility()
+        register_job_utility()
 
         self.assertEqual(self.driver.find_element_by_class_name('alert-info').text,
                'There are no events.')
@@ -216,18 +192,14 @@ class ShiftSignUp(LiveServerTestCase):
             '//table//tbody//tr[1]//td[4]').text, 'View Jobs')
 
     def test_shift_sign_up_with_outdated_shifts(self):
-        self.login()
+        self.login({ 'username' : 'volunteer', 'password' : 'volunteer'})
 
-        self.register_event_utility()
-        self.register_job_utility()
+        register_event_utility()
+        register_job_utility()
 
         # create outdated shift
-        Shift.objects.create(
-                date = '2016-05-11',
-                start_time = '09:00',
-                end_time = '15:00',
-                max_volunteers ='6',
-                job = Job.objects.get(name = 'job'))
+        shift_1 = ["2016-05-11","9:00","15:00",6,Job.objects.get(name = 'job')]
+        s1 = create_shift_with_details(shift_1)
 
         # open Shift Sign Up
         self.driver.find_element_by_link_text('Shift Sign Up').click()
@@ -244,39 +216,24 @@ class ShiftSignUp(LiveServerTestCase):
 
     def test_shift_sign_up_with_no_slots(self):
 
-        self.register_event_utility()
-        self.register_job_utility()
+        register_event_utility()
+        register_job_utility()
 
         # create shift with no slot
-        shift_2 = Shift.objects.create(
-                date = '2016-05-11',
-                start_time = '09:00',
-                end_time = '15:00',
-                max_volunteers ='1',
-                job = Job.objects.get(name = 'job'))
+        shift_2 = ["2016-05-11","9:00","15:00",1,Job.objects.get(name = 'job')]
+        s2 = create_shift_with_details(shift_2)
 
         # Create another volunteer
-        volunteer_user_2 = User.objects.create_user(
-                username = 'volunteer-2',
-                password = 'volunteer')
-
-        volunteer_2 = Volunteer.objects.create(
-                user = volunteer_user_2,
-                address = 'address',
-                city = 'city',
-                state = 'state',
-                country = 'country',
-                phone_number = '9999999999',
-                email = 'volunteer2@volunteer.com',
-                unlisted_organization = 'organization')
+        volunteer_2 = ['volunteer-2',"Sam","Turtle","Mario Land","Nintendo Land","Nintendo State","Nintendo Nation","2374983247","volunteer2@volunteer.com"]
+        v2 = create_volunteer_with_details(volunteer_2)
 
         # Assign shift to the volunteer
         VolunteerShift.objects.create(
-                shift = shift_2,
-                volunteer = volunteer_2)
+                shift = s2,
+                volunteer = v2)
 
         # Login as volunteer 1 and open Shift Sign Up
-        self.login()
+        self.login({ 'username' : 'volunteer', 'password' : 'volunteer'})
         self.driver.find_element_by_link_text('Shift Sign Up').click()
 
         # on event page
@@ -284,51 +241,46 @@ class ShiftSignUp(LiveServerTestCase):
 
     def test_search_event(self):
 
-        self.register_event_utility()
-        self.register_job_utility()
-        self.register_shift_utility()
+        register_event_utility()
+        register_job_utility()
+        register_shift_utility()
 
         # Login as volunteer 1 and open Shift Sign Up
-        self.login()
+        self.login({ 'username' : 'volunteer', 'password' : 'volunteer'})
         self.driver.find_element_by_link_text('Shift Sign Up').click()
 
         # enter date range in which an event starts
-        self.driver.find_element_by_id('from').send_keys('05/08/2016')
-        self.driver.find_element_by_id('to').send_keys('08/31/2017')
-        self.driver.find_element_by_xpath('//form[1]').submit()
+        date = ['05/08/2016', '08/31/2017']
+        self.fill_search_form(date)
         # verify that the event shows up
         self.assertEqual(self.driver.find_element_by_xpath('//table//tbody//tr[1]//td[1]').text, 'event')
 
         # enter date range in which no event starts
-        self.driver.find_element_by_id('from').clear()
-        self.driver.find_element_by_id('to').clear()
-        self.driver.find_element_by_id('from').send_keys('10/08/2016')
-        self.driver.find_element_by_id('to').send_keys('08/31/2017')
-        self.driver.find_element_by_xpath('//form[1]').submit()
+        date = ['10/08/2016', '08/31/2017']
+        self.fill_search_form(date)
         # verify that no event shows up on event page
         self.assertEqual(self.driver.find_element_by_class_name('alert-info').text,'There are no events.')
 
-        # enter only incorrect starting date
-        self.driver.find_element_by_id('from').clear()
-        self.driver.find_element_by_id('to').clear()
-        self.driver.find_element_by_id('from').send_keys('10/08/2016')
+        """# enter only incorrect starting date
+        date = ['10/08/2016', '']
+        self.fill_search_form(date)
         # verify that no event shows up on event page
         self.assertEqual(self.driver.find_element_by_class_name('alert-info').text,'There are no events.')
 
-        """# enter only correct starting date
-        self.driver.find_element_by_id('from').clear()
-        self.driver.find_element_by_id('from').send_keys('05/10/2016')
+        # enter only correct starting date
+        date = ['05/10/2016', '']
+        self.fill_search_form(date)
         # verify that the event shows up
-        self.assertEqual(self.driver.find_element_by_xpath('//table//tbody//tr[1]//td[1]').text, 'event')"""
+        self.assertEqual(self.driver.find_element_by_xpath('//table//tbody//tr[1]//td[1]').text, 'event')
 
         # enter only incorrect ending date
-        self.driver.find_element_by_id('from').clear()
-        self.driver.find_element_by_id('to').send_keys('10/08/2015')
+        date = ['', '10/08/2015']
+        self.fill_search_form(date)
         # verify that no event shows up on event page
         self.assertEqual(self.driver.find_element_by_class_name('alert-info').text,'There are no events.')
 
-        """# enter correct ending date
-        self.driver.find_element_by_id('to').clear()
-        self.driver.find_element_by_id('to').send_keys('06/15/2017')
+        # enter correct ending date
+        date = ['', '06/15/2017']
+        self.fill_search_form(date)
         # verify that the event shows up
         self.assertEqual(self.driver.find_element_by_xpath('//table//tbody//tr[1]//td[1]').text, 'event')"""

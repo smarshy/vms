@@ -4,7 +4,6 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
 from shift.utils import (
-    create_organization,
     create_admin,
     create_volunteer
     )
@@ -33,10 +32,6 @@ class TestAccessControl(LiveServerTestCase):
     def setUp(self):
         admin = create_admin()
         volunteer = create_volunteer()
-
-        # create an org prior to registration. Bug in Code
-        # added to pass CI
-        create_organization()
 
     def tearDown(self):
         pass
