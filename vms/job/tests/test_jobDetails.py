@@ -1,5 +1,9 @@
 from django.contrib.staticfiles.testing import LiveServerTestCase
 
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+
 from pom.pages.jobDetailsPage import JobDetailsPage
 from pom.pages.authenticationPage import AuthenticationPage
 
@@ -9,7 +13,6 @@ from shift.utils import (
     create_job_with_details
     )
 
-from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 
 class JobDetails(LiveServerTestCase):
@@ -18,9 +21,14 @@ class JobDetails(LiveServerTestCase):
     '''
     def setUp(self):
         create_admin()
-        self.job_list_page = '/job/list/'
 
-        self.driver = webdriver.Firefox()
+        desired_cap = {'browser': 'Firefox', 'browser_version': '44.0', 'os': 'Windows', 'os_version': '7', 'resolution': '1024x768'}
+        desired_cap['browserstack.local'] = True
+
+        self.driver = webdriver.Remote(
+            command_executor='http://vatsalaswaroop1:XH3F8x8AaNW7eizzFNny@hub.browserstack.com:80/wd/hub',
+            desired_capabilities=desired_cap)
+
         self.driver.implicitly_wait(5)
         self.driver.maximize_window()
         super(JobDetails, self).setUp()
