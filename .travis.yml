@@ -1,3 +1,7 @@
+addons:
+  browserstack:
+    username: "vatsalaswaroop1"
+    access_key: "XH3F8x8AaNW7eizzFNny"
 language: python
 python:
   - "2.7"
