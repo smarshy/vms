@@ -24,6 +24,7 @@ class JobDetails(LiveServerTestCase):
 
         desired_cap = {'browser': 'Firefox', 'browser_version': '44.0', 'os': 'Windows', 'os_version': '7', 'resolution': '1024x768'}
         desired_cap['browserstack.local'] = True
+        desired_cap['browserstack.localIdentifier'] = ENV['BROWSERSTACK_LOCAL_IDENTIFIER']
 
         self.driver = webdriver.Remote(
             command_executor='http://vatsalaswaroop1:XH3F8x8AaNW7eizzFNny@hub.browserstack.com:80/wd/hub',
