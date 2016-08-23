@@ -4,6 +4,8 @@ from pom.pages.upcomingShiftsPage import UpcomingShiftsPage
 from pom.pages.authenticationPage import AuthenticationPage
 from pom.pages.manageShiftPage import ManageShiftPage
 
+from shift.models import VolunteerShift
+
 from shift.utils import (
     create_volunteer,
     create_event_with_details,
@@ -110,6 +112,13 @@ class ViewVolunteerShift(LiveServerTestCase):
         with self.assertRaises(NoSuchElementException):
             upcoming_shift_page.get_result_container()
 
+        # database check to ensure volunteer has logged the hours
+        self.assertEqual(len(VolunteerShift.objects.all()), 1)
+        self.assertNotEqual(len(VolunteerShift.objects.filter(
+            start_time__isnull=False, end_time__isnull=False)), 0)
+        self.assertNotEqual(len(VolunteerShift.objects.filter(
+            start_time='09:00', end_time='12:00')), 0)
+
     def test_cancel_shift_registration(self):
 
         self.register_dataset()
@@ -133,3 +142,6 @@ class ViewVolunteerShift(LiveServerTestCase):
             upcoming_shift_page.no_shift_message)
         with self.assertRaises(NoSuchElementException):
             upcoming_shift_page.get_result_container()
+
+        # database check to ensure shift registration is cancelled
+        self.assertEqual(len(VolunteerShift.objects.all()), 0)
